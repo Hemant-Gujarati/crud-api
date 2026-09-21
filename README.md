@@ -1,6 +1,6 @@
 # Task CRUD API
 
-A Postgres-backed To-Do CRUD API built with Python, FastAPI, and Docker for the FlyRank Backend Track Week 1 Assignment A3.
+A Postgres-backed To-Do CRUD API built with Python, FastAPI, and Docker for the FlyRank Backend Track Week 3 Assignment A3.
 
 ## Features
 
