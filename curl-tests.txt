@@ -1,0 +1,14 @@
+# Run the server first:
+# uvicorn app:app --reload
+
+curl -i http://localhost:8000/
+curl -i http://localhost:8000/health
+curl -i http://localhost:8000/tasks
+curl -i http://localhost:8000/tasks/1
+curl -i http://localhost:8000/tasks/99
+
+curl -i -X POST http://localhost:8000/tasks -H "Content-Type: application/json" -d '{"title":"Buy milk"}'
+curl -i -X POST http://localhost:8000/tasks -H "Content-Type: application/json" -d '{}'
+
+curl -i -X PUT http://localhost:8000/tasks/1 -H "Content-Type: application/json" -d '{"title":"Updated task","done":true}'
+curl -i -X DELETE http://localhost:8000/tasks/1
