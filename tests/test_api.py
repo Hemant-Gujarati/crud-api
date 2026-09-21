@@ -33,17 +33,23 @@ class TaskApiTests(unittest.TestCase):
         self.assertEqual(created.status_code, 201)
         self.assertEqual(created.json(), {"id": 1, "title": "Write tests", "done": False})
 
+        listed = self.client.get("/tasks")
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(len(listed.json()), 1)
+
         updated = self.client.put("/tasks/1", json={"done": True})
         self.assertEqual(updated.status_code, 200)
         self.assertEqual(updated.json(), {"id": 1, "title": "Write tests", "done": True})
 
-        self.assertEqual(self.client.delete("/tasks/1").status_code, 204)
+        deleted = self.client.delete("/tasks/1")
+        self.assertEqual(deleted.status_code, 204)
         self.assertEqual(self.client.get("/tasks/1").status_code, 404)
 
-    def test_invalid_requests_return_expected_errors(self):
-        self.assertEqual(self.client.post("/tasks", json={}).status_code, 422)
+    def test_invalid_or_missing_tasks_return_expected_errors(self):
+        self.assertEqual(self.client.post("/tasks", json={"title": ""}).status_code, 422)
+        self.assertEqual(self.client.put("/tasks/1", json={"done": None}).status_code, 422)
         self.assertEqual(self.client.put("/tasks/1", json={}).status_code, 400)
-        self.assertEqual(self.client.delete("/tasks/999999").status_code, 404)
+        self.assertEqual(self.client.get("/tasks/99").status_code, 404)
 
 
 if __name__ == "__main__":

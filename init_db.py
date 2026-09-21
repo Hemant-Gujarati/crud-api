@@ -17,6 +17,7 @@ def initialize_database() -> None:
             )
             """
         )
+
         count = connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
         if count == 0:
             connection.executemany(

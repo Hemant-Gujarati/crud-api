@@ -10,6 +10,8 @@ DATABASE_PATH = FilePath(__file__).with_name("tasks.db")
 
 
 class TaskCreate(BaseModel):
+    """The fields accepted when a task is created."""
+
     model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str = Field(min_length=1, max_length=200)
@@ -17,6 +19,8 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
+    """One or both editable task fields."""
+
     model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str | None = Field(default=None, min_length=1, max_length=200)
@@ -45,6 +49,7 @@ app = FastAPI(
 
 @contextmanager
 def get_db():
+    """Open a SQLite connection and always close it after the request."""
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
     try:

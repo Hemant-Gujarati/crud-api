@@ -61,17 +61,41 @@ Open the API documentation at [http://localhost:8000/docs](http://localhost:8000
 | PUT | `/tasks/{task_id}` | Update one or both task fields | 200 |
 | DELETE | `/tasks/{task_id}` | Delete a task | 204 |
 
+### Task format
+
+```json
+{
+  "id": 1,
+  "title": "Learn FastAPI",
+  "done": false
+}
+```
+
 ### Request examples
+
+Create a task:
 
 ```bash
 curl -i -X POST http://localhost:8000/tasks -H "Content-Type: application/json" -d '{"title":"Buy milk"}'
+```
+
+Update its completion state:
+
+```bash
 curl -i -X PUT http://localhost:8000/tasks/1 -H "Content-Type: application/json" -d '{"done":true}'
+```
+
+Delete a task:
+
+```bash
 curl -i -X DELETE http://localhost:8000/tasks/1
 ```
 
 Unknown task IDs return `404`. An empty update body returns `400`; malformed request data and invalid field values return FastAPI's standard `422` validation response.
 
 ## Test
+
+Run the complete automated test suite with:
 
 ```bash
 python -m unittest discover -s tests -v
@@ -81,7 +105,7 @@ Tests use an isolated temporary SQLite database and never alter `tasks.db`.
 
 ## SQLite inspection and SQL examples
 
-Open `tasks.db` in **DB Browser for SQLite**, select the **Browse Data** tab, and choose the `tasks` table to view the stored records. Use the **Execute SQL** tab to run:
+Open `tasks.db` in **DB Browser for SQLite**, select the **Browse Data** tab, and choose the `tasks` table to view the stored records. Use the **Execute SQL** tab to run the following examples:
 
 ```sql
 -- Read every task
@@ -102,6 +126,13 @@ DELETE FROM tasks WHERE title = 'Review SQLite queries';
 
 After an `INSERT`, `UPDATE`, or `DELETE`, click **Write Changes** in DB Browser for SQLite to save it. For the required database screenshot, capture the Browse Data view with the `tasks` table selected and its task rows visible.
 
-## Git submission
+## Suggested Git history for submission
 
-The repository includes the required meaningful development commits. Commit the SQLite migration and push it to GitHub before submitting.
+The assignment asks for a public GitHub repository with at least six meaningful commits. A sensible commit sequence is:
+
+1. Initialize FastAPI server
+2. Add root and health endpoints
+3. Add read endpoints and missing-task handling
+4. Add task creation and validation
+5. Add update and delete endpoints
+6. Add SQLite persistence, tests, and documentation
