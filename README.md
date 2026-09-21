@@ -51,17 +51,4 @@ List tasks:
 curl -i http://localhost:8000/tasks
 ```
 
-## AI vs me
 
-**Prompt used:**
-"Please containerize my FastAPI task CRUD API using Docker and Docker Compose. Switch the database from SQLite to PostgreSQL using the `psycopg` driver. Keep the table structure the same (`id`, `title`, `done`) and make sure the API routes behave identically, but use parameterized queries for Postgres (`%s`). Do not hardcode the password; read it from a `.env` file instead. Ensure the database persists data using a volume. Provide one command (`docker compose up`) to start everything, and make sure the app seeds the initial three tasks automatically if the table is empty."
-
-**What it did better:**
-- It added a retry loop in `init_db.py` to handle the race condition of the API starting before the Postgres container is fully ready.
-- It used `dict_row` factory in `psycopg` to seamlessly match the dictionary-like behavior of `sqlite3.Row`, minimizing changes to the endpoint logic.
-
-**What it got wrong or ignored:**
-- It completely overwrote my README initially before putting its changes in an `ai-version` folder!
-
-**What my prompt forgot to specify:**
-- I forgot to explicitly tell it to use `autocommit=True` or manage the transaction explicitly in the `get_db()` context manager, but it inferred it correctly anyway.
