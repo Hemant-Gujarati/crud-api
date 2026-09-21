@@ -1,51 +1,27 @@
 # Task CRUD API
 
-A SQLite-backed To-Do CRUD API built with Python and FastAPI for the FlyRank Backend Track Week 2 Assignment A1.
+A Postgres-backed To-Do CRUD API built with Python, FastAPI, and Docker for the FlyRank Backend Track Week 1 Assignment A3.
 
 ## Features
 
 - Create, list, retrieve, update, and delete tasks
-- Persistent SQLite storage in `tasks.db`
+- Persistent Postgres storage in Docker volume
 - Request validation with clear HTTP status codes
 - Interactive Swagger documentation
-- Automated CRUD test coverage
+- Fully containerized via Docker Compose
 
-## Requirements
+## Setup and Run the API
 
-- Python 3.10 or later
-- pip
+1. Provide the environment variable configuration by copying the example:
+   ```bash
+   cp .env.example .env
+   ```
+2. Start the application and database together in a single command:
+   ```bash
+   docker compose up
+   ```
 
-The project uses Pydantic 2, which is installed automatically from `requirements.txt`.
-
-## Setup
-
-From this project directory, create and activate a virtual environment, then install dependencies.
-
-### Windows PowerShell
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python init_db.py
-```
-
-### macOS/Linux
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python init_db.py
-```
-
-`init_db.py` is safe to run more than once. It creates the `tasks` table and seeds three example tasks only when the table is empty.
-
-## Run the API
-
-```bash
-uvicorn app:app --reload
-```
+The application will start, the database will initialize, and any missing tables will be created automatically. The database will also be seeded with three example tasks on the first run.
 
 Open the API documentation at [http://localhost:8000/docs](http://localhost:8000/docs). A health check is available at [http://localhost:8000/health](http://localhost:8000/health).
 
@@ -61,16 +37,6 @@ Open the API documentation at [http://localhost:8000/docs](http://localhost:8000
 | PUT | `/tasks/{task_id}` | Update one or both task fields | 200 |
 | DELETE | `/tasks/{task_id}` | Delete a task | 204 |
 
-### Task format
-
-```json
-{
-  "id": 1,
-  "title": "Learn FastAPI",
-  "done": false
-}
-```
-
 ### Request examples
 
 Create a task:
@@ -79,60 +45,23 @@ Create a task:
 curl -i -X POST http://localhost:8000/tasks -H "Content-Type: application/json" -d '{"title":"Buy milk"}'
 ```
 
-Update its completion state:
+List tasks:
 
 ```bash
-curl -i -X PUT http://localhost:8000/tasks/1 -H "Content-Type: application/json" -d '{"done":true}'
+curl -i http://localhost:8000/tasks
 ```
 
-Delete a task:
+## AI vs me
 
-```bash
-curl -i -X DELETE http://localhost:8000/tasks/1
-```
+**Prompt used:**
+"Please containerize my FastAPI task CRUD API using Docker and Docker Compose. Switch the database from SQLite to PostgreSQL using the `psycopg` driver. Keep the table structure the same (`id`, `title`, `done`) and make sure the API routes behave identically, but use parameterized queries for Postgres (`%s`). Do not hardcode the password; read it from a `.env` file instead. Ensure the database persists data using a volume. Provide one command (`docker compose up`) to start everything, and make sure the app seeds the initial three tasks automatically if the table is empty."
 
-Unknown task IDs return `404`. An empty update body returns `400`; malformed request data and invalid field values return FastAPI's standard `422` validation response.
+**What it did better:**
+- It added a retry loop in `init_db.py` to handle the race condition of the API starting before the Postgres container is fully ready.
+- It used `dict_row` factory in `psycopg` to seamlessly match the dictionary-like behavior of `sqlite3.Row`, minimizing changes to the endpoint logic.
 
-## Test
+**What it got wrong or ignored:**
+- It completely overwrote my README initially before putting its changes in an `ai-version` folder!
 
-Run the complete automated test suite with:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-Tests use an isolated temporary SQLite database and never alter `tasks.db`.
-
-## SQLite inspection and SQL examples
-
-Open `tasks.db` in **DB Browser for SQLite**, select the **Browse Data** tab, and choose the `tasks` table to view the stored records. Use the **Execute SQL** tab to run the following examples:
-
-```sql
--- Read every task
-SELECT id, title, done FROM tasks ORDER BY id;
-
--- Create a task
-INSERT INTO tasks (title, done) VALUES ('Review SQLite queries', 0);
-
--- Mark that task complete
-UPDATE tasks SET done = 1 WHERE title = 'Review SQLite queries';
-
--- Confirm the update
-SELECT id, title, done FROM tasks WHERE title = 'Review SQLite queries';
-
--- Clean up the example row
-DELETE FROM tasks WHERE title = 'Review SQLite queries';
-```
-
-After an `INSERT`, `UPDATE`, or `DELETE`, click **Write Changes** in DB Browser for SQLite to save it. For the required database screenshot, capture the Browse Data view with the `tasks` table selected and its task rows visible.
-
-## Suggested Git history for submission
-
-The assignment asks for a public GitHub repository with at least six meaningful commits. A sensible commit sequence is:
-
-1. Initialize FastAPI server
-2. Add root and health endpoints
-3. Add read endpoints and missing-task handling
-4. Add task creation and validation
-5. Add update and delete endpoints
-6. Add SQLite persistence, tests, and documentation
+**What my prompt forgot to specify:**
+- I forgot to explicitly tell it to use `autocommit=True` or manage the transaction explicitly in the `get_db()` context manager, but it inferred it correctly anyway.

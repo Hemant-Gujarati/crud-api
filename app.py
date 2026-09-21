@@ -1,12 +1,14 @@
+import os
 from contextlib import contextmanager
-from pathlib import Path as FilePath
-import sqlite3
+import psycopg
+from psycopg.rows import dict_row
+from dotenv import load_dotenv
 
 from fastapi import FastAPI, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
-DATABASE_PATH = FilePath(__file__).with_name("tasks.db")
+load_dotenv()
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://postgres:dev@localhost:5432/tasks")
 
 
 class TaskCreate(BaseModel):
@@ -43,29 +45,24 @@ class TaskResponse(BaseModel):
 app = FastAPI(
     title="Task API",
     version="1.0.0",
-    description="A small SQLite-backed CRUD API for managing to-do tasks.",
+    description="A small Postgres-backed CRUD API for managing to-do tasks.",
 )
 
 
 @contextmanager
 def get_db():
-    """Open a SQLite connection and always close it after the request."""
-    connection = sqlite3.connect(DATABASE_PATH)
-    connection.row_factory = sqlite3.Row
-    try:
+    """Open a Postgres connection and always close it after the request."""
+    with psycopg.connect(DATABASE_URL, row_factory=dict_row, autocommit=True) as connection:
         yield connection
-        connection.commit()
-    finally:
-        connection.close()
 
 
-def task_from_row(row: sqlite3.Row) -> TaskResponse:
+def task_from_row(row: dict) -> TaskResponse:
     return TaskResponse(id=row["id"], title=row["title"], done=bool(row["done"]))
 
 
-def get_existing_task(connection: sqlite3.Connection, task_id: int) -> sqlite3.Row:
+def get_existing_task(connection: psycopg.Connection, task_id: int) -> dict:
     row = connection.execute(
-        "SELECT id, title, done FROM tasks WHERE id = ?", (task_id,)
+        "SELECT id, title, done FROM tasks WHERE id = %s", (task_id,)
     ).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
@@ -98,11 +95,9 @@ def get_task(task_id: int = Path(ge=1)):
 @app.post("/tasks", response_model=TaskResponse, status_code=201, summary="Create a task")
 def create_task(task: TaskCreate):
     with get_db() as connection:
-        cursor = connection.execute(
-            "INSERT INTO tasks (title, done) VALUES (?, ?)", (task.title, task.done)
-        )
         row = connection.execute(
-            "SELECT id, title, done FROM tasks WHERE id = ?", (cursor.lastrowid,)
+            "INSERT INTO tasks (title, done) VALUES (%s, %s) RETURNING id, title, done",
+            (task.title, task.done)
         ).fetchone()
     return task_from_row(row)
 
@@ -117,11 +112,9 @@ def update_task(task: TaskUpdate, task_id: int = Path(ge=1)):
         existing = get_existing_task(connection, task_id)
         title = updated_fields.get("title", existing["title"])
         done = updated_fields.get("done", bool(existing["done"]))
-        connection.execute(
-            "UPDATE tasks SET title = ?, done = ? WHERE id = ?", (title, done, task_id)
-        )
         row = connection.execute(
-            "SELECT id, title, done FROM tasks WHERE id = ?", (task_id,)
+            "UPDATE tasks SET title = %s, done = %s WHERE id = %s RETURNING id, title, done",
+            (title, done, task_id)
         ).fetchone()
     return task_from_row(row)
 
@@ -130,4 +123,4 @@ def update_task(task: TaskUpdate, task_id: int = Path(ge=1)):
 def delete_task(task_id: int = Path(ge=1)):
     with get_db() as connection:
         get_existing_task(connection, task_id)
-        connection.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        connection.execute("DELETE FROM tasks WHERE id = %s", (task_id,))
